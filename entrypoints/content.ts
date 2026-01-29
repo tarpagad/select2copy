@@ -1,3 +1,5 @@
+import { defineContentScript } from 'wxt/utils/define-content-script';
+
 export default defineContentScript({
   // run on all pages
   matches: ['<all_urls>'],
@@ -150,14 +152,31 @@ export default defineContentScript({
       });
     }
 
+    // Define storage types
+    interface StorageData {
+      key?: 'ctrl' | 'shift' | 'alt';
+      position?: Position;
+      background?: string;
+      ignoredDomains?: string[];
+    }
+
     // load saved settings
     try {
-      // @ts-ignore
-      const stored = await browser.storage.local.get();
-      if (stored && stored.key) settings.key = stored.key;
-      if (stored && stored.position) settings.position = stored.position;
-      if (stored && stored.background) settings.background = stored.background;
-      if (stored && Array.isArray(stored.ignoredDomains) && isDomainIgnored(stored.ignoredDomains)) {
+      const stored = await browser.storage.local.get<StorageData>();
+      if (stored.key && (stored.key === 'ctrl' || stored.key === 'shift' || stored.key === 'alt')) {
+        settings.key = stored.key;
+      }
+      if (stored.position && (
+        stored.position === 'top-left' ||
+        stored.position === 'top-right' ||
+        stored.position === 'bottom-left' ||
+        stored.position === 'bottom-right' ||
+        stored.position === 'center'
+      )) {
+        settings.position = stored.position;
+      }
+      if (stored.background) settings.background = stored.background;
+      if (Array.isArray(stored.ignoredDomains) && isDomainIgnored(stored.ignoredDomains)) {
         // Exit early if domain is ignored
         return;
       }
@@ -167,11 +186,24 @@ export default defineContentScript({
 
     // listen for changes from options page
     try {
-      // @ts-ignore
-      browser.storage.onChanged.addListener((changes: any) => {
-        if (changes.key && changes.key.newValue) settings.key = changes.key.newValue;
-        if (changes.position && changes.position.newValue) settings.position = changes.position.newValue;
-        if (changes.background && changes.background.newValue) settings.background = changes.background.newValue;
+      browser.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== 'local') return;
+
+        if (changes.key?.newValue && (changes.key.newValue === 'ctrl' || changes.key.newValue === 'shift' || changes.key.newValue === 'alt')) {
+          settings.key = changes.key.newValue;
+        }
+        if (changes.position?.newValue && (
+          changes.position.newValue === 'top-left' ||
+          changes.position.newValue === 'top-right' ||
+          changes.position.newValue === 'bottom-left' ||
+          changes.position.newValue === 'bottom-right' ||
+          changes.position.newValue === 'center'
+        )) {
+          settings.position = changes.position.newValue;
+        }
+        if (changes.background?.newValue && typeof changes.background.newValue === 'string') {
+          settings.background = changes.background.newValue;
+        }
         applyToastBackground();
         applyToastPosition();
       });

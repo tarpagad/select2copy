@@ -1,24 +1,34 @@
 import './style.css';
-import typescriptLogo from '@/assets/typescript.svg';
-import wxtLogo from '/wxt.svg';
-import { setupCounter } from '@/components/counter';
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-    <a href="https://wxt.dev" target="_blank">
-      <img src="${wxtLogo}" class="logo" alt="WXT logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
-    <h1>WXT + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the WXT and TypeScript logos to learn more
-    </p>
-  </div>
-`;
+// Declare chrome API for TypeScript
+declare const chrome: any;
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!);
+// Function to open extension settings
+function openExtensionSettings() {
+  // Check if we're in Firefox or Chrome
+  if (typeof browser !== 'undefined') {
+    // Firefox
+    browser.runtime.openOptionsPage();
+  } else if (typeof chrome !== 'undefined') {
+    // Chrome
+    chrome.runtime.openOptionsPage();
+  }
+}
+
+// Function to close the popup
+function closePopup() {
+  window.close();
+}
+
+// Add event listener to the settings link
+document.addEventListener('DOMContentLoaded', () => {
+  const settingsLink = document.getElementById('open-settings');
+  if (settingsLink) {
+    settingsLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      openExtensionSettings();
+      // Close the popup after opening settings
+      setTimeout(closePopup, 100); // Small delay to ensure settings page opens
+    });
+  }
+});

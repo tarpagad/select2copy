@@ -2,6 +2,14 @@ import './style.css';
 
 type Position = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
 
+// Define storage types
+interface StorageData {
+  key?: 'ctrl' | 'shift' | 'alt';
+  position?: Position;
+  background?: string;
+  ignoredDomains?: string[];
+}
+
 const keySelect = document.getElementById('keySelect') as HTMLSelectElement;
 const positionSelect = document.getElementById('positionSelect') as HTMLSelectElement;
 const bgColor = document.getElementById('bgColor') as HTMLInputElement;
@@ -30,8 +38,7 @@ async function save() {
     (li) => li.textContent?.replace('Remove', '').trim() || ''
   ).filter(Boolean);
   try {
-    // @ts-ignore
-    await browser.storage.local.set({ key, position, background, ignoredDomains });
+    await browser.storage.local.set<StorageData>({ key, position, background, ignoredDomains });
   } catch (e) {
     // ignore
   }
@@ -64,8 +71,7 @@ function renderDomainList(domains: string[]) {
 
 async function load() {
   try {
-    // @ts-ignore
-    const stored = await browser.storage.local.get();
+    const stored = await browser.storage.local.get<StorageData>();
     const key = stored.key || 'ctrl';
     const position = stored.position || 'bottom-right';
     const background = stored.background || 'rgba(0,0,0,0.78)';

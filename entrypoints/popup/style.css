@@ -32,55 +32,46 @@ body {
 }
 
 h1 {
-  font-size: 3.2em;
+  font-size: 1.5em;
   line-height: 1.1;
+  margin-bottom: 1.5em;
+  text-align: center;
 }
 
 #app {
-  max-width: 1280px;
+  max-width: 300px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #54bc4ae0);
-}
-.logo.vanilla:hover {
-  filter: drop-shadow(0 0 2em #3178c6aa);
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
 }
 
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
+.settings-link {
+  display: inline-block;
+  padding: 12px 24px;
+  background-color: #646cff;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
   font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+  transition: background-color 0.2s;
+  border: none;
   cursor: pointer;
-  transition: border-color 0.25s;
+  font-size: 16px;
+  width: 100%;
+  max-width: 200px;
+  text-align: center;
 }
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+
+.settings-link:hover {
+  background-color: #535bf2;
 }
 
 @media (prefers-color-scheme: light) {
@@ -91,7 +82,7 @@ button:focus-visible {
   a:hover {
     color: #747bff;
   }
-  button {
-    background-color: #f9f9f9;
+  .settings-link {
+    color: white;
   }
 }
