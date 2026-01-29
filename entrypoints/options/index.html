@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>xselect2copy Options</title>
+  </head>
+
+  <body>
+    <main>
+      <h1>xselect2copy — Options</h1>
+
+      <label>
+        Modifier key to hold while selecting:
+        <select id="keySelect">
+          <option value="ctrl">Ctrl</option>
+          <option value="shift">Shift</option>
+          <option value="alt">Alt</option>
+        </select>
+      </label>
+
+      <label>
+        Toast location:
+        <select id="positionSelect">
+          <option value="top-left">Top left</option>
+          <option value="top-right">Top right</option>
+          <option value="bottom-left">Bottom left</option>
+          <option value="bottom-right">Bottom right</option>
+          <option value="center">Center</option>
+        </select>
+      </label>
+
+      <label>
+        Toast background color:
+        <input id="bgColor" type="color" />
+        <input id="bgOpacity" type="range" min="0" max="100" value="78" />
+      </label>
+
+      <div id="previewWrap">
+        <p>Preview:</p>
+        <div id="preview">copied</div>
+      </div>
+
+      <section>
+        <h2>Ignore domains</h2>
+        <p style="color:#666;font-size:13px">Disable the extension on these
+          domains (e.g., docs.google.com).</p>
+        <div>
+          <input id="domainInput" type="text"
+            placeholder="Enter domain (e.g., docs.google.com)" />
+          <button id="addDomainBtn">Add</button>
+        </div>
+        <ul id="domainList" style="list-style:none;padding:0;margin-top:8px">
+        </ul>
+      </section>
+
+      <p style="color:#666;font-size:13px">Changes saved automatically.</p>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+
+</html>
