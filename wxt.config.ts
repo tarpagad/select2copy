@@ -7,7 +7,7 @@ export default defineConfig({
 		name: "xselect2copy",
 		permissions: ["storage", "clipboardWrite"],
 		options_page: "options.html",
-		version: "1.0.1",
+		version: "1.0.2",
 
 		browser_specific_settings: {
 			gecko: {

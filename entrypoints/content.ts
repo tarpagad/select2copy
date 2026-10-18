@@ -22,21 +22,67 @@ export default defineContentScript({
 			background: "rgba(0,0,0,0.78)",
 		};
 
+		type StorageData = {
+			key?: "ctrl" | "shift" | "alt";
+			position?: Position;
+			background?: string;
+			ignoredDomains?: string[];
+		};
+
+		// Check if current domain is ignored
+		function isDomainIgnored(ignoredDomains: string[]): boolean {
+			const hostname = window.location.hostname;
+			return ignoredDomains.some((domain) => {
+				return hostname === domain || hostname.endsWith("." + domain);
+			});
+		}
+
+		// Load saved settings before registering anything
+		try {
+			const stored = await browser.storage.local.get<StorageData>();
+			if (
+				stored.key &&
+				(stored.key === "ctrl" ||
+					stored.key === "shift" ||
+					stored.key === "alt")
+			) {
+				settings.key = stored.key;
+			}
+			if (
+				stored.position &&
+				(stored.position === "top-left" ||
+					stored.position === "top-right" ||
+					stored.position === "bottom-left" ||
+					stored.position === "bottom-right" ||
+					stored.position === "center")
+			) {
+				settings.position = stored.position;
+			}
+			if (stored.background) settings.background = stored.background;
+			if (
+				Array.isArray(stored.ignoredDomains) &&
+				isDomainIgnored(stored.ignoredDomains)
+			) {
+				// Exit early without registering listeners on ignored domains
+				return;
+			}
+		} catch (e) {
+			// ignore
+		}
+
 		function updateFromKeyboard(e: KeyboardEvent) {
 			modifiers.ctrl = e.ctrlKey;
 			modifiers.shift = e.shiftKey;
 			modifiers.alt = e.altKey;
 		}
 
-		window.addEventListener("keydown", updateFromKeyboard, true);
-		window.addEventListener("keyup", updateFromKeyboard, true);
-		window.addEventListener("blur", () => {
-			modifiers.ctrl = modifiers.shift = modifiers.alt = false;
-		});
-
 		function hasConfiguredModifier() {
 			return Boolean(modifiers[settings.key]);
 		}
+
+		// Remember the last copy to avoid redundant writes/repeat toasts
+		let lastCopiedText = "";
+		let lastCopiedAt = 0;
 
 		async function tryCopySelection() {
 			try {
@@ -76,26 +122,20 @@ export default defineContentScript({
 					}
 				}
 
-				// Log for debugging
-				console.log(
-					"[select2copy] Selection detected:",
-					JSON.stringify({
-						textLength: text?.length,
-						textPreview: text?.slice(0, 50),
-						hasModifier: hasConfiguredModifier(),
-						selectionSource,
-					}),
-				);
-
 				if (!text || !text.trim()) return false;
 
-				// Always require modifier key - this is the key fix for the issue
-				if (!hasConfiguredModifier()) {
-					console.log("[select2copy] No configured modifier, skipping copy");
-					return false;
+				// Always require modifier key
+				if (!hasConfiguredModifier()) return false;
+
+				// Skip duplicate copies of the same text within the toast window
+				const now = Date.now();
+				if (text === lastCopiedText && now - lastCopiedAt < 1500) {
+					return true;
 				}
 
 				await navigator.clipboard.writeText(text);
+				lastCopiedText = text;
+				lastCopiedAt = now;
 				showToast("copied");
 				return true;
 			} catch (e) {
@@ -105,23 +145,26 @@ export default defineContentScript({
 			}
 		}
 
-		// When selection changes (keyboard selections like shift+arrows)
-		document.addEventListener("selectionchange", () => {
-			console.log(
-				"[select2copy] selectionchange event fired, hasModifier:",
-				hasConfiguredModifier(),
-			);
-			if (hasConfiguredModifier()) tryCopySelection();
+		// Modifier state tracking; copy fires on key release
+		window.addEventListener("keydown", updateFromKeyboard, true);
+		window.addEventListener("keyup", (e) => {
+			// During the keyup of the modifier key itself, e.ctrlKey/e.shiftKey/e.altKey
+			// is still true, so releasing it at the end of a selection still copies.
+			if (hasConfiguredModifier()) setTimeout(tryCopySelection, 0);
+			updateFromKeyboard(e);
+		}, true);
+		window.addEventListener("blur", () => {
+			modifiers.ctrl = modifiers.shift = modifiers.alt = false;
 		});
 
 		// When pointer-based selection finishes (mouse/touch)
-		const scheduleCopy = (eventType: string) => () => {
-			console.log("[select2copy]", eventType, "fired, checking selection...");
+		const scheduleCopy = () => {
 			setTimeout(tryCopySelection, 0);
 		};
-		document.addEventListener("pointerup", scheduleCopy("pointerup"));
-		document.addEventListener("mouseup", scheduleCopy("mouseup"));
-		document.addEventListener("touchend", scheduleCopy("touchend"));
+		document.addEventListener("pointerup", scheduleCopy);
+		document.addEventListener("mouseup", scheduleCopy);
+		document.addEventListener("touchend", scheduleCopy);
+
 		// Tiny toast notification shown after successful copy
 		function ensureToast() {
 			const id = "__xselect2copy_toast";
@@ -210,55 +253,6 @@ export default defineContentScript({
 					el.style.transform = "translateY(8px)";
 				toastTimer = null;
 			}, 1200);
-		}
-
-		// Check if current domain is ignored
-		function isDomainIgnored(ignoredDomains: string[]): boolean {
-			const hostname = window.location.hostname;
-			return ignoredDomains.some((domain) => {
-				return hostname === domain || hostname.endsWith("." + domain);
-			});
-		}
-
-		// Define storage types
-		interface StorageData {
-			key?: "ctrl" | "shift" | "alt";
-			position?: Position;
-			background?: string;
-			ignoredDomains?: string[];
-		}
-
-		// load saved settings
-		try {
-			const stored = await browser.storage.local.get<StorageData>();
-			if (
-				stored.key &&
-				(stored.key === "ctrl" ||
-					stored.key === "shift" ||
-					stored.key === "alt")
-			) {
-				settings.key = stored.key;
-			}
-			if (
-				stored.position &&
-				(stored.position === "top-left" ||
-					stored.position === "top-right" ||
-					stored.position === "bottom-left" ||
-					stored.position === "bottom-right" ||
-					stored.position === "center")
-			) {
-				settings.position = stored.position;
-			}
-			if (stored.background) settings.background = stored.background;
-			if (
-				Array.isArray(stored.ignoredDomains) &&
-				isDomainIgnored(stored.ignoredDomains)
-			) {
-				// Exit early if domain is ignored
-				return;
-			}
-		} catch (e) {
-			// ignore
 		}
 
 		// listen for changes from options page
